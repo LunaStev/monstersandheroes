@@ -1,0 +1,189 @@
+// main.wave
+
+// 게임 모듈 정의
+module GameModule {
+    // 자동 메모리 관리 클래스
+    class Character {
+        var name: String;        // 캐릭터의 이름
+        var health: Int;         // 캐릭터의 체력
+        var attack: Int;         // 캐릭터의 공격력
+        var experience: Int;     // 캐릭터의 경험치
+        var inventory: List<String>; // 캐릭터의 인벤토리 (아이템 목록)
+
+        // 캐릭터 클래스 초기화 함수
+        init(name: String, health: Int, attack: Int) {
+            self.name = name;
+            self.health = health;
+            self.attack = attack;
+            self.experience = 0;
+            self.inventory = [];  // 자동으로 관리되는 리스트 초기화
+        }
+
+        // 데미지를 입는 함수
+        fun takeDamage(damage: Int) {
+            self.health -= damage;
+            if (self.health < 0) {
+                self.health = 0; // 체력이 0 이하로 내려가지 않도록 설정
+            }
+        }
+
+        // 캐릭터가 살아있는지 확인하는 함수
+        fun isAlive() -> Bool {
+            return self.health > 0;
+        }
+
+        // 경험치를 얻는 함수
+        fun gainExperience(amount: Int) {
+            self.experience += amount;
+            println("\(self.name) gained \(amount) experience points!");
+        }
+
+        // 인벤토리에 아이템을 추가하는 함수
+        fun addItemToInventory(item: String) {
+            self.inventory.append(item);
+            println("\(item) added to inventory.");
+        }
+    }
+
+    // 수동 메모리 관리 클래스
+    class Monster {
+        var name: String;        // 몬스터의 이름
+        var health: Int;         // 몬스터의 체력
+        var attack: Int;         // 몬스터의 공격력
+        var expValue: Int;       // 몬스터를 처치했을 때 얻는 경험치 값
+        var specialAbility: *String; // 수동으로 관리할 메모리 포인터 (특수 능력)
+
+        // 몬스터 클래스 초기화 함수
+        init(name: String, health: Int, attack: Int, expValue: Int) {
+            self.name = name;
+            self.health = health;
+            self.attack = attack;
+            self.expValue = expValue;
+            self.specialAbility = null; // 초기화 시 특수 능력은 null로 설정
+        }
+
+        // 몬스터 클래스 소멸자 함수
+        deinit() {
+            if (self.specialAbility != null) {
+                free_memory(self.specialAbility); // 수동으로 메모리 해제
+            }
+        }
+
+        // 특수 능력을 설정하는 함수
+        fun setSpecialAbility(ability: String) {
+            if (self.specialAbility != null) {
+                free_memory(self.specialAbility); // 기존 메모리 해제
+            }
+            self.specialAbility = allocate_memory(ability.length); // 새 메모리 할당
+            for (i in 0..ability.length) {
+                self.specialAbility[i] = ability[i]; // 특수 능력 문자열 복사
+            }
+        }
+
+        // 특수 능력을 반환하는 함수
+        fun getSpecialAbility() -> String {
+            if (self.specialAbility == null) {
+                return "No special ability"; // 특수 능력이 없을 때 반환
+            }
+            return String(self.specialAbility); // 특수 능력 반환
+        }
+    }
+
+    // 수동 메모리 관리 함수
+    fun allocate_memory(size: Int) -> *Char {
+        return new Char[size]; // 지정한 크기의 메모리 할당
+    }
+
+    // 메모리 해제 함수
+    fun free_memory(pointer: *Char) {
+        delete[] pointer; // 메모리 해제
+        println("Manual Memory Management: Memory freed");
+    }
+
+    // 논리형 프로그래밍 함수
+    fun shouldFlee(playerHealth: Int, monsterHealth: Int) -> Bool {
+        return playerHealth < 20 && monsterHealth > 50; // 특정 조건을 만족할 때 도망칠지 여부 반환
+    }
+
+    // 몬스터를 생성하는 함수
+    fun generateMonster() -> Monster {
+        var names = ["Goblin", "Orc", "Troll", "Dragon"]; // 몬스터 이름 목록
+        var randomIndex = Int(random() * names.length); // 랜덤 인덱스 생성
+        var name = names[randomIndex]; // 랜덤 이름 선택
+        var health = Int(random() * 50) + 50; // 랜덤 체력 설정
+        var attack = Int(random() * 10) + 5; // 랜덤 공격력 설정
+        var expValue = Int(random() * 20) + 10; // 랜덤 경험치 값 설정
+        return Monster(name: name, health: health, attack: attack, expValue: expValue); // 몬스터 객체 반환
+    }
+}
+
+// 프로그램의 진입점
+fun main() {
+    println("Welcome to the Text RPG Game!"); // 게임 환영 메시지 출력
+    println("Enter your character's name: "); // 사용자에게 캐릭터 이름 입력 요청
+    var playerName = readLine()!; // 사용자로부터 이름 입력 받기
+
+    var player = GameModule.Character(name: playerName, health: 100, attack: 20); // 캐릭터 객체 생성
+    var monstersDefeated = 0; // 처치한 몬스터 수 초기화
+
+    // 메인 게임 루프
+    while (true) {
+        println("\n1. Fight a monster");
+        println("2. Check stats");
+        println("3. Add item to inventory");
+        println("4. Quit");
+        println("Choose an action: "); // 사용자에게 행동 선택 요청
+        var choice = Int(readLine()!); // 선택한 행동 입력 받기
+
+        if (choice == 1) {
+            var monster = GameModule.generateMonster(); // 몬스터 생성
+            monster.setSpecialAbility("Fireball"); // 몬스터에게 특수 능력 설정
+            println("You encounter a \(monster.name) with \(monster.getSpecialAbility()) ability!");
+
+            // 전투 루프
+            while (player.isAlive() && monster.health > 0) {
+                // 플레이어의 턴
+                monster.health -= player.attack; // 몬스터의 체력 감소
+                println("You deal \(player.attack) damage to the \(monster.name).");
+
+                if (monster.health <= 0) {
+                    println("You defeated the \(monster.name)!"); // 몬스터를 처치했을 때
+                    player.gainExperience(monster.expValue); // 경험치 획득
+                    monstersDefeated += 1; // 처치한 몬스터 수 증가
+                    break; // 전투 종료
+                }
+
+                // 몬스터의 턴
+                player.takeDamage(monster.attack); // 플레이어의 체력 감소
+                println("The \(monster.name) deals \(monster.attack) damage to you.");
+
+                if (!player.isAlive()) {
+                    println("Game Over! You were defeated by the \(monster.name)."); // 플레이어가 패배했을 때
+                    return; // 게임 종료
+                }
+
+                if (GameModule.shouldFlee(player.health, monster.health)) {
+                    println("You decide to flee from the battle!"); // 플레이어가 도망쳤을 때
+                    break; // 전투 종료
+                }
+            }
+        } else if (choice == 2) {
+            println("\nPlayer Stats:");
+            println("Name: \(player.name)");
+            println("Health: \(player.health)");
+            println("Attack: \(player.attack)");
+            println("Experience: \(player.experience)");
+            println("Inventory: \(player.inventory)");
+            println("Monsters Defeated: \(monstersDefeated)"); // 플레이어의 현재 상태 출력
+        } else if (choice == 3) {
+            println("Enter item name to add to inventory: "); // 인벤토리에 추가할 아이템 이름 입력 요청
+            var itemName = readLine()!; // 아이템 이름 입력 받기
+            player.addItemToInventory(itemName); // 인벤토리에 아이템 추가
+        } else if (choice == 4) {
+            println("Thank you for playing!"); // 게임 종료 메시지 출력
+            break; // 게임 루프 종료
+        } else {
+            println("Invalid choice. Please try again."); // 잘못된 선택에 대한 메시지 출력
+        }
+    }
+}
