@@ -1,4 +1,5 @@
 // main.wave
+import("iosys");
 
 // 게임 모듈 정의
 module GameModule {
